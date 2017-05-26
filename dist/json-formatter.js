@@ -1,7 +1,7 @@
 /*!
  * jsonformatter
  * 
- * Version: 0.6.0 - 2016-08-27T12:58:03.306Z
+ * Version: 0.6.0 - 2016-04-28T02:57:03.650Z
  * License: Apache-2.0
  */
 
@@ -65,12 +65,6 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     if (typeof object === 'object' && !object.constructor) {
         return 'Object';
     }
-
-    //ES6 default gives name to constructor 
-    if (object.__proto__ !== undefined && object.__proto__.constructor !== undefined && object.__proto__.constructor.name !== undefined) {
-      return object.__proto__.constructor.name;
-    } 
-       
     var funcNameRegex = /function (.{1,})\(/;
     var results = (funcNameRegex).exec((object).constructor.toString());
     if (results && results.length > 1) {
@@ -117,6 +111,7 @@ angular.module('jsonFormatter', ['RecursionHelper'])
   }
 
   function link(scope) {
+
     scope.isArray = function () {
       return angular.isArray(scope.json);
     };
@@ -136,6 +131,7 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     scope.type = getType(scope.json);
     scope.hasKey = typeof scope.key !== 'undefined';
     scope.getConstructorName = function(){
+      if (scope.label) return scope.label;
       return getObjectName(scope.json);
     };
 
@@ -219,7 +215,8 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     scope: {
       json: '=',
       key: '=',
-      open: '='
+      open: '=',
+      label: '='
     },
     compile: function(element) {
 

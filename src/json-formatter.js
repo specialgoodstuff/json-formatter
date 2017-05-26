@@ -1,3 +1,11 @@
+/*!
+ * jsonformatter
+ * 
+ * Version: 0.6.0 - 2016-04-28T02:57:03.650Z
+ * License: Apache-2.0
+ */
+
+
 'use strict';
 
 angular.module('jsonFormatter', ['RecursionHelper'])
@@ -57,12 +65,6 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     if (typeof object === 'object' && !object.constructor) {
         return 'Object';
     }
-
-    //ES6 default gives name to constructor 
-    if (object.__proto__ !== undefined && object.__proto__.constructor !== undefined && object.__proto__.constructor.name !== undefined) {
-      return object.__proto__.constructor.name;
-    } 
-       
     var funcNameRegex = /function (.{1,})\(/;
     var results = (funcNameRegex).exec((object).constructor.toString());
     if (results && results.length > 1) {
@@ -109,6 +111,7 @@ angular.module('jsonFormatter', ['RecursionHelper'])
   }
 
   function link(scope) {
+
     scope.isArray = function () {
       return angular.isArray(scope.json);
     };
@@ -128,6 +131,7 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     scope.type = getType(scope.json);
     scope.hasKey = typeof scope.key !== 'undefined';
     scope.getConstructorName = function(){
+      if (scope.label) return scope.label;
       return getObjectName(scope.json);
     };
 
@@ -211,7 +215,8 @@ angular.module('jsonFormatter', ['RecursionHelper'])
     scope: {
       json: '=',
       key: '=',
-      open: '='
+      open: '=',
+      label: '='
     },
     compile: function(element) {
 
@@ -227,3 +232,50 @@ angular.module('jsonFormatter', ['RecursionHelper'])
 if (typeof module === 'object') {
   module.exports = 'jsonFormatter';
 }
+'use strict';
+
+// from http://stackoverflow.com/a/18609594
+angular.module('RecursionHelper', []).factory('RecursionHelper', ['$compile', function($compile){
+  return {
+    /**
+     * Manually compiles the element, fixing the recursion loop.
+     * @param element
+     * @param [link] A post-link function, or an object with function(s)
+     * registered via pre and post properties.
+     * @returns An object containing the linking functions.
+     */
+    compile: function(element, link){
+      // Normalize the link parameter
+      if(angular.isFunction(link)){
+        link = { post: link };
+      }
+
+      // Break the recursion loop by removing the contents
+      var contents = element.contents().remove();
+      var compiledContents;
+      return {
+        pre: (link && link.pre) ? link.pre : null,
+        /**
+         * Compiles and re-adds the contents
+         */
+        post: function(scope, element){
+          // Compile the contents
+          if(!compiledContents){
+            compiledContents = $compile(contents);
+          }
+          // Re-add the compiled contents to the element
+          compiledContents(scope, function(clone){
+            element.append(clone);
+          });
+
+          // Call the post-linking function, if any
+          if(link && link.post){
+            link.post.apply(null, arguments);
+          }
+        }
+      };
+    }
+  };
+}]);
+
+angular.module("jsonFormatter").run(["$templateCache", function($templateCache) {$templateCache.put("json-formatter.html","<div ng-init=\"isOpen = open && open > 0\" class=\"json-formatter-row\"><a ng-click=\"toggleOpen()\"><span class=\"toggler {{isOpen ? \'open\' : \'\'}}\" ng-if=\"isObject()\"></span> <span class=\"key\" ng-if=\"hasKey\"><span class=\"key-text\">{{key}}</span><span class=\"colon\">:</span></span> <span class=\"value\"><span ng-if=\"isObject()\"><span class=\"constructor-name\">{{getConstructorName(json)}}</span> <span ng-if=\"isArray()\"><span class=\"bracket\">[</span><span class=\"number\">{{json.length}}</span><span class=\"bracket\">]</span></span></span> <span ng-if=\"!isObject()\" ng-click=\"openLink(isUrl)\" class=\"{{type}}\" ng-class=\"{date: isDate, url: isUrl}\">{{parseValue(json)}}</span></span> <span ng-if=\"showThumbnail()\" class=\"thumbnail-text\">{{getThumbnail()}}</span></a><div class=\"children\" ng-if=\"getKeys().length && isOpen\"><json-formatter ng-repeat=\"key in getKeys() track by $index\" json=\"json[key]\" key=\"key\" open=\"childrenOpen()\"></json-formatter></div><div class=\"children empty object\" ng-if=\"isEmptyObject()\"></div><div class=\"children empty array\" ng-if=\"getKeys() && !getKeys().length && isOpen && isArray()\"></div></div>");}]);
